@@ -370,7 +370,7 @@ def format_time_slot(time_str):
             if len(parts) >= 2:
                 hour = int(parts[0])
                 minute = int(parts[1])
-                return f"{hour:02d}:{minute:02d}"
+                return f"{hour:d}:{minute:02d}"
         
         # Handle time objects or datetime objects
         if hasattr(time_str, 'hour') and hasattr(time_str, 'minute'):
@@ -389,13 +389,13 @@ def generate_all_30min_slots():
     # Weekday slots (9:00-16:00)
     for hour in range(9, 16):
         for minute in [0, 30]:
-            start_time = f"{hour:02d}:{minute:02d}"
+            start_time = f"{hour:d}:{minute:02d}"
             weekday_slots.append(start_time)
     
     # Saturday slots (9:00-12:00)
     for hour in range(9, 12):
         for minute in [0, 30]:
-            start_time = f"{hour:02d}:{minute:02d}"
+            start_time = f"{hour:d}:{minute:02d}"
             saturday_slots.append(start_time)
     
     return weekday_slots, saturday_slots
@@ -407,7 +407,7 @@ def get_next_slot(slot_time):
         next_slot = f"{hour:02d}:30"
     else:
         next_hour = hour + 1
-        next_slot = f"{next_hour:02d}:00"
+        next_slot = f"{next_hour:d}:00"
     return next_slot
 
 def find_contiguous_hour_slots(all_slots, booked_slots):
@@ -860,7 +860,7 @@ def main():
                     combined_hora = f"{st.session_state.selected_slot}:00"
                 
                 booking_to_save = {
-                    'Fecha': selected_date.strftime('%Y-%m-%d') + ' 00:00:00',  # EXACT FORMAT
+                    'Fecha': selected_date.strftime('%Y-%m-%d') + ' 0:00:00',
                     'Hora': combined_hora,
                     'Proveedor': st.session_state.supplier_name,
                     'Numero_de_bultos': numero_bultos,
