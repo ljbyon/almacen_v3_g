@@ -10,6 +10,7 @@ from email.mime.base import MIMEBase
 from email import encoders
 import io
 import os
+from googleapiclient.discovery import build
 
 st.set_page_config(page_title="Dismac: Reserva de Entrega de Mercadería", layout="wide")
 
@@ -195,22 +196,42 @@ def save_booking_to_sheets(new_booking):
 # 3. Email Functions - UNCHANGED
 # ─────────────────────────────────────────────────────────────
 def download_pdf_attachment():
-    """Download PDF attachment - MODIFIED FOR GOOGLE SHEETS or local file"""
+    """Download PDF attachment from Google Drive"""
     try:
-        # Try to get PDF from Google Sheets first
+        # Get Google Drive service using same credentials as Sheets
         gc = setup_google_sheets()
-        if gc:
-            try:
-                # You can upload PDF to Google Drive and get it here
-                # For now, we'll skip PDF attachment or use a local fallback
-                pass
-            except Exception:
-                pass
+        if not gc:
+            return None, None
         
-        # For now, return None to skip PDF attachment
-        # You can upload the PDF to Google Drive and modify this function
-        st.warning("Archivo adjunto no disponible en esta versión de Google Sheets")
-        return None, None
+        # Get the underlying credentials for Drive API
+        credentials_info = dict(st.secrets["google_service_account"])
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive.readonly"
+        ]
+        credentials = Credentials.from_service_account_info(credentials_info, scopes=scopes)
+        
+        # Build Drive service
+        from googleapiclient.discovery import build
+        drive_service = build('drive', 'v3', credentials=credentials)
+        
+        # Download the PDF file
+        file_id = st.secrets["PDF_FILE_ID"]
+        
+        # Get file metadata
+        file_metadata = drive_service.files().get(fileId=file_id).execute()
+        filename = file_metadata.get('name', 'GUIA_DEL_SELLER_DISMAC_MARKETPLACE.pdf')
+        
+        # Download file content
+        request = drive_service.files().get_media(fileId=file_id)
+        
+        # Execute download
+        pdf_content = io.BytesIO()
+        downloader = request.execute()
+        pdf_content.write(downloader)
+        pdf_content.seek(0)
+        
+        return pdf_content.getvalue(), filename
         
     except Exception as e:
         st.warning(f"No se pudo descargar el archivo adjunto: {str(e)}")
