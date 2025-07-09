@@ -44,7 +44,7 @@ def setup_google_sheets():
         gc = gspread.authorize(credentials)
         return gc
     except Exception as e:
-        st.error(f"❌ Error conectando a Google Sheets: {str(e)}")
+        st.error(f"❌ Error conectando: {str(e)}")
         return None
 
 @st.cache_data(ttl=60, show_spinner=False)  # Reduced TTL for real-time booking
@@ -135,7 +135,7 @@ def download_sheets_to_memory():
         return credentials_df, reservas_df, gestion_df
         
     except Exception as e:
-        st.error(f"Error descargando datos de Google Sheets: {str(e)}")
+        st.error(f"Error descargando datos: {str(e)}")
         return None, None, None
 
 def save_booking_to_sheets(new_booking):
@@ -146,7 +146,7 @@ def save_booking_to_sheets(new_booking):
         credentials_df, reservas_df, gestion_df = download_sheets_to_memory()
         
         if reservas_df is None:
-            st.error("❌ No se pudo cargar los datos de Google Sheets")
+            st.error("❌ No se pudo cargar los datos")
             return False
 
         # 🔒 FINAL CHECK: Verify slot is still available
@@ -189,7 +189,7 @@ def save_booking_to_sheets(new_booking):
         return True
         
     except Exception as e:
-        st.error(f"❌ Error guardando reserva en Google Sheets: {str(e)}")
+        st.error(f"❌ Error guardando reserva: {str(e)}")
         return False
 
 # ─────────────────────────────────────────────────────────────
@@ -570,21 +570,18 @@ def check_slot_availability(selected_date, slot_time, numero_bultos):
 # ─────────────────────────────────────────────────────────────
 def main():
     st.title("🚚 Dismac: Reserva de Entrega de Mercadería")
-    st.caption("🔄 Migrado a Google Sheets")
     
     # Download Google Sheets data when app starts
-    with st.spinner("Cargando datos desde Google Sheets..."):
+    with st.spinner("Cargando datos..."):
         credentials_df, reservas_df, gestion_df = download_sheets_to_memory()
     
     if credentials_df is None:
-        st.error("❌ Error al cargar datos de Google Sheets")
+        st.error("❌ Error al cargar datos")
         if st.button("🔄 Reintentar Conexión"):
             download_sheets_to_memory.clear()
             st.rerun()
         return
     
-    # Show connection success
-    st.success(f"✅ Conectado a Google Sheets: {st.secrets['GOOGLE_SHEET_NAME']}")
     
     # Session state - UNCHANGED
     if 'authenticated' not in st.session_state:
@@ -888,11 +885,11 @@ def main():
                     'Orden_de_compra': orden_compra_combined
                 }
                 
-                with st.spinner("Guardando reserva en Google Sheets..."):
+                with st.spinner("Guardando reserva..."):
                     success = save_booking_to_sheets(booking_to_save)
                 
                 if success:
-                    st.success("✅ Reserva confirmada en Google Sheets!")
+                    st.success("✅ Reserva confirmada!")
                     
                     # Send email if email is available
                     if st.session_state.supplier_email:
@@ -931,7 +928,7 @@ def main():
                     time.sleep(2)
                     st.rerun()
                 else:
-                    st.error("❌ Error al guardar reserva en Google Sheets")
+                    st.error("❌ Error al guardar reserva")
 
 if __name__ == "__main__":
     main()
