@@ -299,7 +299,7 @@ def save_booking_to_sheets_enhanced(new_booking):
         log_booking_attempt("DATA_PREPARED", f"Row data: {new_row_data}")
 
         # Attempt to save with retry logic
-        max_save_attempts = 3
+        max_save_attempts = 10
         save_success = False
         last_error = None
         
