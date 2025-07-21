@@ -313,7 +313,7 @@ def save_booking_to_sheets_enhanced(new_booking):
                 log_booking_attempt("APPEND_REQUESTED", f"append_row() request sent for {booking_id}")
                 
                 # Wait a moment for Google Sheets to process
-                time.sleep(5)
+                time.sleep(10)
                 
                 # Step 5: Verify the specific booking was saved (CONTENT-ONLY VALIDATION)
                 log_booking_attempt("PROCESSING_WAIT", f"Waiting for Google Sheets to process {booking_id}")
