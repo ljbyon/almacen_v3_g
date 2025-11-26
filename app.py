@@ -707,8 +707,8 @@ def generate_all_20min_slots():
     weekday_slots = []
     saturday_slots = []
     
-    # Weekday slots (9:00-16:00)
-    for hour in range(9, 16):
+    # Weekday slots (9:00-17:00)
+    for hour in range(9, 17):
         for minute in [0, 20, 40]:
             start_time = f"{hour:d}:{minute:02d}"
             weekday_slots.append(start_time)
