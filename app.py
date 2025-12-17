@@ -774,7 +774,17 @@ def get_available_slots(selected_date, reservas_df, numero_bultos):
         all_20min_slots = saturday_slots
     else:
         all_20min_slots = weekday_slots
+
     
+    
+    
+    # Special case: December 24, 2025 - only allow reservations until 3pm
+    if selected_date.year == 2025 and selected_date.month == 12 and selected_date.day == 24:
+        all_20min_slots = [slot for slot in all_20min_slots if int(slot.split(':')[0]) < 15]
+    
+
+
+
     # Get booked slots for this date
     target_date = selected_date.strftime('%Y-%m-%d')
     
