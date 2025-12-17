@@ -1095,7 +1095,15 @@ def main():
             all_20min_slots = saturday_slots
         else:  # Monday-Friday
             all_20min_slots = weekday_slots
-        
+
+
+
+        # Special case: December 24, 2025 - only allow reservations until 3pm
+        if selected_date.year == 2025 and selected_date.month == 12 and selected_date.day == 24:
+            all_20min_slots = [slot for slot in all_20min_slots if int(slot.split(':')[0]) < 15]
+
+
+
         # Get booked slots for this date
         target_date = selected_date.strftime('%Y-%m-%d')
         date_mask = reservas_df['Fecha'].astype(str).str.contains(target_date, na=False)
