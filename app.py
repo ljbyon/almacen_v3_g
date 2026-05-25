@@ -597,7 +597,8 @@ def send_booking_email(supplier_email, supplier_name, booking_details, cc_emails
         • Además, según el tipo de venta, es importante considerar lo siguiente:
           - Venta al contado: Debes entregar el pedido junto con la factura a nombre del comprador y tres (3) copias de la orden de compra.
           - Venta en minicuotas: Debes entregar el pedido junto con la factura a nombre de Dismatec S.A. y una (1) copia de la orden de compra.
-        
+        • Entregar impreso en almacén este correo.
+
         REQUISITOS DE SEGURIDAD
         • Pantalón largo, sin rasgados
         • Botines de seguridad
