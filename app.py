@@ -489,11 +489,33 @@ def enhanced_confirmation_process(selected_date, selected_slot, numero_bultos, v
 # ─────────────────────────────────────────────────────────────
 
 
-def _post_mail(to_field, subject, html_body):
+# def _post_mail(to_field, subject, html_body):
+#     """Send one request to the Dismac Magento mail endpoint. Raises on non-2xx."""
+#     payload = {
+#         "from": {"email": MAIL_FROM_EMAIL, "name": MAIL_FROM_NAME},
+#         "to": to_field,
+#         "subject": subject,
+#         "body": html_body,
+#     }
+#     headers = {
+#         "Authorization": f"Bearer {MAIL_API_TOKEN}",
+#         "Content-Type": "application/json",
+#     }
+#     resp = requests.post(MAIL_API_URL, json=payload, headers=headers, timeout=30)
+#     resp.raise_for_status()
+#     return resp
+
+MAIL_REPLY_TO = MAIL_FROM_EMAIL
+
+
+def _post_mail(to_field, subject, html_body, cc="", bcc="", reply_to=MAIL_REPLY_TO):
     """Send one request to the Dismac Magento mail endpoint. Raises on non-2xx."""
     payload = {
         "from": {"email": MAIL_FROM_EMAIL, "name": MAIL_FROM_NAME},
         "to": to_field,
+        "cc": cc,
+        "bcc": bcc,
+        "reply_to": reply_to,
         "subject": subject,
         "body": html_body,
     }
@@ -504,7 +526,6 @@ def _post_mail(to_field, subject, html_body):
     resp = requests.post(MAIL_API_URL, json=payload, headers=headers, timeout=30)
     resp.raise_for_status()
     return resp
-
 
 
 
