@@ -405,6 +405,85 @@ def get_duration_and_slots_info(numero_bultos, selected_slot):
     
     return combined_hora, duration_text, duration_minutes
 
+# def enhanced_confirmation_process(selected_date, selected_slot, numero_bultos, valid_orders, supplier_name, supplier_email, supplier_cc_emails):
+#     """Enhanced confirmation process with proper error handling and logging"""
+    
+#     log_booking_attempt("CONFIRMATION_START", f"User: {supplier_name}, Date: {selected_date}, Slot: {selected_slot}")
+    
+#     # Final availability check
+#     with st.spinner("Verificando disponibilidad final..."):
+#         is_still_available, availability_message = check_slot_availability(selected_date, selected_slot, numero_bultos)
+    
+#     if not is_still_available:
+#         log_booking_attempt("FINAL_CHECK_FAILED", f"{supplier_name}", success=False, error=availability_message)
+#         st.error(f"❌ {availability_message}")
+#         return False
+    
+#     log_booking_attempt("FINAL_CHECK_PASSED", f"Slot still available for {supplier_name}")
+
+#     # Prepare booking data - MODIFIED FOR 20-MINUTE SLOTS
+#     orden_compra_combined = ', '.join(valid_orders)
+    
+#     combined_hora, duration_text, _ = get_duration_and_slots_info(numero_bultos, selected_slot)
+    
+#     booking_to_save = {
+#         'Fecha': selected_date.strftime('%Y-%m-%d') + ' 0:00:00',
+#         'Hora': combined_hora,
+#         'Proveedor': supplier_name,
+#         'Numero_de_bultos': numero_bultos,
+#         'Orden_de_compra': orden_compra_combined
+#     }
+    
+#     log_booking_attempt("BOOKING_PREPARED", f"Data prepared for {supplier_name}: {booking_to_save}")
+
+#     # Attempt to save booking
+#     with st.spinner("Guardando reserva... (Esto puede tomar unos momentos)"):
+#         save_success, save_message = save_booking_to_sheets_enhanced(booking_to_save)
+    
+#     if not save_success:
+#         log_booking_attempt("BOOKING_SAVE_FAILED", f"{supplier_name}", success=False, error=save_message)
+        
+#         # User already saw the error message from save_booking_to_sheets_enhanced
+#         st.error("❌ No se enviará email de confirmación debido al error en el guardado")
+        
+#         # Clear selected slot so user can try again
+#         if 'selected_slot' in st.session_state:
+#             del st.session_state.selected_slot
+        
+#         st.info("💡 Puede intentar seleccionar otro horario o el mismo horario nuevamente después de unos minutos")
+        
+#         return False
+    
+#     # Only send email if save was successful and verified
+#     log_booking_attempt("BOOKING_SAVED", f"{supplier_name} - {save_message}", success=True)
+#     st.success("✅ Reserva confirmada y verificada!")
+    
+#     # Send email
+#     if supplier_email:
+#         log_booking_attempt("EMAIL_START", f"Sending to {supplier_email}")
+        
+#         with st.spinner("Enviando confirmación por email..."):
+#             email_sent, actual_cc_emails = send_booking_email(
+#                 supplier_email,
+#                 supplier_name,
+#                 booking_to_save,
+#                 supplier_cc_emails
+#             )
+        
+#         if email_sent:
+#             log_booking_attempt("EMAIL_SUCCESS", f"Email sent to {supplier_email}, CC: {actual_cc_emails}", success=True)
+#             st.success(f"📧 Email de confirmación enviado a: {supplier_email}")
+#             if actual_cc_emails:
+#                 st.success(f"📧 CC enviado a: {', '.join(actual_cc_emails)}")
+#         else:
+#             log_booking_attempt("EMAIL_FAILED", f"Failed to send email to {supplier_email}", success=False)
+#             st.warning("⚠️ Reserva guardada exitosamente pero error enviando email")
+#     else:
+#         log_booking_attempt("NO_EMAIL", f"No email configured for {supplier_name}")
+#         st.warning("⚠️ No se encontró email para enviar confirmación")
+    
+#     return True
+
 def enhanced_confirmation_process(selected_date, selected_slot, numero_bultos, valid_orders, supplier_name, supplier_email, supplier_cc_emails):
     """Enhanced confirmation process with proper error handling and logging"""
     
@@ -436,9 +515,32 @@ def enhanced_confirmation_process(selected_date, selected_slot, numero_bultos, v
     
     log_booking_attempt("BOOKING_PREPARED", f"Data prepared for {supplier_name}: {booking_to_save}")
 
-    # Attempt to save booking
-    with st.spinner("Guardando reserva... (Esto puede tomar unos momentos)"):
+    # [FIX] Save AND email inside one spinner: no st.* call between them,
+    # so a rerun can't stop the script after saving but before emailing
+    email_sent, actual_cc_emails = False, []
+    with st.spinner("Guardando reserva y enviando confirmación... (Esto puede tomar unos momentos)"):
         save_success, save_message = save_booking_to_sheets_enhanced(booking_to_save)
+        
+        if save_success:
+            log_booking_attempt("BOOKING_SAVED", f"{supplier_name} - {save_message}", success=True)
+            
+            if supplier_email:
+                log_booking_attempt("EMAIL_START", f"Sending to {supplier_email}")
+                email_sent, actual_cc_emails = send_booking_email(
+                    supplier_email,
+                    supplier_name,
+                    booking_to_save,
+                    supplier_cc_emails
+                )
+                if email_sent:
+                    log_booking_attempt("EMAIL_SUCCESS", f"Email sent to {supplier_email}, CC: {actual_cc_emails}", success=True)
+                else:
+                    log_booking_attempt("EMAIL_FAILED", f"Failed to send email to {supplier_email}", success=False)
+            else:
+                log_booking_attempt("NO_EMAIL", f"No email configured for {supplier_name}")
+            
+            # Read by a duplicate click that is waiting for this one to finish
+            st.session_state.last_booking_saved = True
     
     if not save_success:
         log_booking_attempt("BOOKING_SAVE_FAILED", f"{supplier_name}", success=False, error=save_message)
@@ -454,32 +556,17 @@ def enhanced_confirmation_process(selected_date, selected_slot, numero_bultos, v
         
         return False
     
-    # Only send email if save was successful and verified
-    log_booking_attempt("BOOKING_SAVED", f"{supplier_name} - {save_message}", success=True)
+    # [FIX] UI messages only AFTER save + email are finished
     st.success("✅ Reserva confirmada y verificada!")
     
-    # Send email
     if supplier_email:
-        log_booking_attempt("EMAIL_START", f"Sending to {supplier_email}")
-        
-        with st.spinner("Enviando confirmación por email..."):
-            email_sent, actual_cc_emails = send_booking_email(
-                supplier_email,
-                supplier_name,
-                booking_to_save,
-                supplier_cc_emails
-            )
-        
         if email_sent:
-            log_booking_attempt("EMAIL_SUCCESS", f"Email sent to {supplier_email}, CC: {actual_cc_emails}", success=True)
             st.success(f"📧 Email de confirmación enviado a: {supplier_email}")
             if actual_cc_emails:
                 st.success(f"📧 CC enviado a: {', '.join(actual_cc_emails)}")
         else:
-            log_booking_attempt("EMAIL_FAILED", f"Failed to send email to {supplier_email}", success=False)
             st.warning("⚠️ Reserva guardada exitosamente pero error enviando email")
     else:
-        log_booking_attempt("NO_EMAIL", f"No email configured for {supplier_name}")
         st.warning("⚠️ No se encontró email para enviar confirmación")
     
     return True
@@ -1185,16 +1272,81 @@ def main():
             st.info(f"📋 Órdenes de compra: {', '.join(valid_orders)}")
             
             # Confirm button
-            if st.button("✅ Confirmar Reserva", use_container_width=True):
-                success = enhanced_confirmation_process(
-                    selected_date,
-                    st.session_state.selected_slot,
-                    numero_bultos,
-                    valid_orders,
-                    st.session_state.supplier_name,
-                    st.session_state.supplier_email,
-                    st.session_state.supplier_cc_emails
+            # if st.button("✅ Confirmar Reserva", use_container_width=True):
+            #     success = enhanced_confirmation_process(
+            #         selected_date,
+            #         st.session_state.selected_slot,
+            #         numero_bultos,
+            #         valid_orders,
+            #         st.session_state.supplier_name,
+            #         st.session_state.supplier_email,
+            #         st.session_state.supplier_cc_emails
+            #     )
+                
+            #     if success:
+            #         st.balloons()
+                    
+            #         # Clear session data and log off user
+            #         log_booking_attempt("SESSION_CLEANUP", f"Clearing session for {st.session_state.supplier_name}")
+            #         st.session_state.orden_compra_list = ['']
+            #         if 'numero_bultos_input' in st.session_state:
+            #             del st.session_state.numero_bultos_input
+            #         st.info("Cerrando sesión automáticamente...")
+            #         st.session_state.authenticated = False
+            #         st.session_state.supplier_name = None
+            #         st.session_state.supplier_email = None
+            #         st.session_state.supplier_cc_emails = []
+            #         if 'selected_slot' in st.session_state:
+            #             del st.session_state.selected_slot
+                    
+            #         # Wait a moment then rerun
+            #         time.sleep(2)
+            #         st.rerun()
+            # [FIX] Confirm button: hidden as soon as it is clicked
+            def _on_confirm():
+                st.session_state.confirm_clicked = True
+            
+            confirm_area = st.empty()
+            if st.session_state.get("confirm_clicked") or st.session_state.get("booking_in_progress"):
+                confirm_area.info("⏳ Procesando su reserva. No cierre ni recargue la página.")
+            else:
+                confirm_area.button(
+                    "✅ Confirmar Reserva",
+                    use_container_width=True,
+                    key="btn_confirmar",
+                    on_click=_on_confirm
                 )
+            
+            if st.session_state.get("confirm_clicked"):
+                st.session_state.confirm_clicked = False
+                
+                # [FIX] A second click while the first is still saving: wait, don't book again
+                if st.session_state.get("booking_in_progress"):
+                    log_booking_attempt("DUPLICATE_CLICK_IGNORED", f"{st.session_state.supplier_name}")
+                    with st.spinner("Su reserva se está procesando, espere por favor..."):
+                        start = time.time()
+                        while st.session_state.get("booking_in_progress") and time.time() - start < 120:
+                            time.sleep(0.5)
+                    if st.session_state.get("last_booking_saved"):
+                        st.success("✅ Su reserva fue registrada. Revise su email de confirmación.")
+                    else:
+                        st.warning("⚠️ La reserva no se completó. Por favor intente nuevamente.")
+                    st.stop()
+                
+                st.session_state.booking_in_progress = True
+                st.session_state.last_booking_saved = False
+                try:
+                    success = enhanced_confirmation_process(
+                        selected_date,
+                        st.session_state.selected_slot,
+                        numero_bultos,
+                        valid_orders,
+                        st.session_state.supplier_name,
+                        st.session_state.supplier_email,
+                        st.session_state.supplier_cc_emails
+                    )
+                finally:
+                    st.session_state.booking_in_progress = False
                 
                 if success:
                     st.balloons()
