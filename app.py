@@ -610,7 +610,7 @@ def _post_mail(to_field, subject, html_body, cc="", bcc="", reply_to=MAIL_REPLY_
         "Authorization": f"Bearer {MAIL_API_TOKEN}",
         "Content-Type": "application/json",
     }
-    resp = requests.post(MAIL_API_URL, json=payload, headers=headers, timeout=30)
+    resp = requests.post(MAIL_API_URL, json=payload, headers=headers, timeout=(5, 30))
     resp.raise_for_status()
     return resp
 
