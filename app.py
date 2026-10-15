@@ -695,8 +695,14 @@ def send_booking_email(supplier_email, supplier_name, booking_details, cc_emails
         # supplier is first; the rest are reported as CC by the caller
         return True, recipients[1:]
 
+    # except Exception as e:
+    #     st.error(f"Error enviando email: {str(e)}")
+    #     return False, []
     except Exception as e:
-        st.error(f"Error enviando email: {str(e)}")
+        detail = str(e)
+        if isinstance(e, requests.HTTPError) and e.response is not None:
+            detail += f" | status={e.response.status_code} | body={e.response.text[:500]}"
+        logger.error(f"EMAIL_EXCEPTION: {supplier_email} | {detail}")
         return False, []
 
 # ─────────────────────────────────────────────────────────────
